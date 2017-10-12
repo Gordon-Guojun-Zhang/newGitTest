@@ -1,0 +1,172 @@
+last time: operator overloading, return by value
+return {k*v1.x, k*v1.y};
+try to use the curly braces
+
+Overloading << and >>
+bitshift for a2
+struct Grade {
+	int theGrade;
+};
+std::istream &operator>>(std::istream& in, Grade & g)
+{
+	in >> g.theGrade;
+	if (g.theGrade > 100 ) g.theGrade = 100;
+	if (g.theGrade < 0 ) g.theGrade = 0;
+	return in;
+}
+
+std::ostream &operator<<(std::ostream& out, const Grade & g)
+{
+	out << g.theGrade << '%';
+	return out;
+}
+
+The PreProcessor (compiler's job, before compilation)
+Transforms the program before the compiler sees 
+
+#___________- Preprocessor directive e.g., include
+include looks for the file to copy and paste to the code
+Including old C headers: new naming convention. Instead of e.g
+#include <stdio.h> use #include <cstdio>.
+
+#define VAR VALUE
+sets a preprocessor varaible. Then all occurrences of VAR in the source
+file are replaced with VALUE
+Example:
+#define MAX 10
+int x[MAX];
+would be transformed to int x[10];
+There is no good reason to do this in C++. Use const definitions instead.  
+#define FLAG
+sets the var FLAG. Its value is the empty string. Define constants are
+useful for conditional compilation.
+
+#define ANDROID 1
+#define IOS 2
+#define OS ANDROID
+#if OS==ANDROID
+	long long int PublicKey; // suppressed if OS != ANDROID
+#elif OS==IOS
+	short int PublicKey; // suppressed if OS != IOS
+#endif
+
+Special case: #if 0 .... # endif
+This is always false, useful for commenting out. All of the inner text 
+is removed before the compilation step. Functions as heavy duty 
+"Comment out" (Note #ifs nest)
+
+Can also define symbols via compile args
+/* define.cc */
+int main() {
+	cout << X << endl;
+	return 0;
+}
+-D: flag for the preprocessor, changes the code
+g++14 -DX=15 define.cc
+
+won't compile on its own, but will compile if we ask preprocessor to
+define X
+g++14 -DX=15 define.cc -o define
+./define
+15
+
+#ifdef NAME / #ifndef NAME are true if NAME has been / has not been
+defined.
+
+/* loop.cc */
+int main() {
+#ifdef DEBUG
+	cout << "setting x = 1" << endl;
+#endif
+	int x = 1;
+
+while ( x < 10 ) {
+	int x;
+	#ifdef DEBUG
+	cout << "x is now" << endl;
+	#endif
+	}
+}
+g++ -DDEBUG loop.cc // enables Debug info
+
+Separate Compilation
+separate into files. Split program into composable modules, each of 
+which provides:
+	- interface: type definitions and prototypes for functions.
+	(.h file or interface file)
+	- implementation: full definition for every provided function
+	for every provided function (.cc file or implementation file)
+Recall:
+	-declaration: asserts existence
+	-definition: full details; allocates space for vars/funcs
+Example:
+// Vec.h (interface)
+struct Vec {
+	int x, y;
+}
+Vec operator+(const Vec &v1, const Vec &v2); // declare a func
+// main.cc (client)
+#include "Vec.h" // (where to look for the file)
+int main() {
+	Vec v{1,2};
+	v  = v + v;
+}
+
+// Vec.cc (implementation)
+#include "Vec.h"
+Vec operator+(const Vec &v1, const Vec &v2) {
+	return {v1.x + v2.x, v1.y + v2.y};
+}
+line continuation \
+in the same line as line continuation
+
+Recall: an entity can be declared many times, but defined at most once.
+Compiling separately;
+g++14 -c Vec.cc		// produces vec.o
+g++14 -c main.cc	// produces main.o
+g++14 Vec.o main.o -o main	// called linking
+// links object files into executable, never compile .h files
+// the order of linking does not matter
+-c class flag, implementation
+Note: NEVER EVER compile your .h files
+Compile flag, -c "compile only", suppresses linking does not attempt to
+build executables. Produces on object file (.o).
+What if we want a module to provide a global variable. 
+//abc.h
+int globalNum;	// wrong, declaration & definition
+Problem: every file that includes abc.h defines a separate globalNum and
+the Program will not link.	// definition collision
+Solution: put the variable in the .cc file
+//abc.h
+extern int globalNum;	// correct, just declaration, but not definition
+...
+//abc.cc
+int globalNum;	// correct, declaration and definition (only once)
+Suppose we want to write a linear algebra module 
+//linalg.h
+#include "Vec.h"
+...
+//linalg.cc
+#include "Vec.h"
+#include "linalg.h"
+...
+// main.cc
+#include "Vec.h"
+#include "linalg.h"
+...
+This won't compile, why not?
+Because we have include Vec.h twice and definition of struct appears twice.
+main.c and linalg.cc include vec.h and linalg.h. linalg.h includes vec.h.
+Thus main.cc and linalg.cc get two copies of vec.h. So the structure vec
+is defined twice in these files which is not permitted.
+
+Need to prevent files from being included more than once.
+Solution include guard.
+// Vec.h
+#ifndef _VEC_H_
+#define _VEC_H_
+...
+...
+#endif
+
+
